@@ -9,6 +9,9 @@ This check will automatically turn notifications on if they have been globally d
 
 
 # Usage
+
+Copy the script to /usr/local/nagios/libexec/check_nagios_notifications (or the equivalent location on your system).  Ensure script is executable and owned by nagios user.
+
 Add a section similar to the following to services.cfg
 ```
 define service{
