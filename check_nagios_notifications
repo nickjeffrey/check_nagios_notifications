@@ -1,0 +1,134 @@
+#!/bin/sh
+
+# CHANGE LOG
+# ----------
+# 2025-10-06	njeffrey	Script created
+
+
+# FUTURE ENHANCEMENTS
+# ------------------
+# add detection for other common locations for status.dat, or look in nagios.cfg for status_file line
+
+
+# NOTES
+# -----
+# Nagios check to automatically re-enable notifications after 24 hours if notifications were globally disabled.
+
+
+# USAGE
+# -----
+# It is assumed this scrpt is located in /usr/local/nagios/libexec/ or equivalent for your environment
+#
+# Add a section similar to the following to services.cfg
+#
+#
+#define service{
+#        # optional parameter is number of minutes until alerts automatically re-enable, defaults to 1440
+#        use                             generic-service
+#        host_name                       localhost
+#        service_description             notifications
+#        check_command                   check_nagios_notifications!1440
+#        }
+#
+# Add a section similar to the following to commands.cfg
+## 'check_nagios_notficiations' command definition 
+#define command{
+#        command_name    check_nagios_notifications
+#        command_line    $USER1$/check_nagios_notifications $ARG1$
+#        }
+
+
+
+
+# declare variables
+OK=0
+WARN=1
+CRITICAL=2
+UNKNOWN=3
+CHECK_NAME="notifications"
+TMPFILE=/tmp/check_nagios_notifications.tmp
+MAX_MINUTES=1440
+
+
+# confirm the user entered no more than one parameter
+if [[ $# -gt 1 ]]; then
+   echo "$CHECK_NAME UNKNOWN - too many arguments.  USAGE: $0 Max_Number_of_Minutes" 
+   exit $UNKNOWN
+fi
+
+
+
+# check to see if the user provided one parameter to be used as $MAX_MINUTES
+if [[ $# -eq 1 ]]; then
+   if [[ "$1" =~ ^[0-9]+$ ]]; then   #validate $1 is a positive integer
+      MAX_MINUTES=$1
+   fi
+fi
+
+
+
+# confirm status.dat file exists and is readable
+STATUS_DAT=unknown
+test -f /usr/local/nagios/var/status.dat && STATUS_DAT=/usr/local/nagios/var/status.dat
+test -f /var/spool/nagios/status.dat     && STATUS_DAT=/var/spool/nagios/status.dat
+if [ ! -f "$STATUS_DAT" ]; then 
+   echo "$CHECK_NAME $UNKNOWN cannot find nagios status.dat file at $STATUS_DAT"
+   exit $UNKNOWN
+fi
+
+
+
+# count the number of disabled notifications
+DISABLED_COUNT=$(grep -c 'notifications_enabled=0' $STATUS_DAT | grep -v host_notifications | grep -v service_notifications) 
+
+# count the total number of enabled notifications
+ENABLED_COUNT=$(grep -c 'notifications_enabled=1' $STATUS_DAT | grep -v host_notifications | grep -v service_notifications) 
+
+# if the number of enabled notifications is zero, we can assume that all notifications are globally disabled
+if [ "$ENABLED_COUNT" -eq 0 ]; then 
+   echo "$CHECK_NAME WARN All $ENABLED_COUNT nagios notifications are disabled!" 
+   exit $WARN
+fi
+
+
+# look for global setting to enable or disable notifications
+grep -q 'enable_notifications=0' $STATUS_DAT && GLOBAL_SETTING=disabled
+grep -q 'enable_notifications=1' $STATUS_DAT && GLOBAL_SETTING=enabled
+
+
+if [ "$GLOBAL_SETTING" == "disabled" ]; then 
+   #
+   # create a temporary file if it does not already exit
+   YYYYDDMMHHMM=`date +"%Y-%m-%d %H:%M"`
+   test -f $TMPFILE || echo "Nagios notifications have been disabled since $YYYYDDMMHHMM" > $TMPFILE
+   #
+   # get the current age of the file in minutes
+   # portability note, this is a GNU bash-ism, not portable to MacOS/BSD/AIX
+   AGE_MINUTES=$(( ( $(date +%s) - $(/bin/stat -c %Y -- "$TMPFILE") ) / 60 ))
+   #
+   # calculate remaining minutes until notifications are automatically re-enabled
+   REMAINING_MINUTES=$(( $MAX_MINUTES - $AGE_MINUTES ))
+   #
+   # if the file is more than $MAX_MINUTES old, try to re-enable nagios notifications
+   # the following command returns 0 if file is less than $MAX_MINUTES, 1 if file is more than $MAX_MINUTES old
+   TIME_EXCEEDED=$(find -wholename $TMPFILE -type f -mmin +$MAX_MINUTES -print | wc -l)
+   if [ "$AGE_MINUTES" -ge "$MAX_MINUTES" ]; then 
+      # figure out where the nagios command file is located
+      CMD_FILE=$(awk -F= '/^command_file/{print $2}' /usr/local/nagios/etc/nagios.cfg)
+      # send a command to the command file pipe, assumes nagios user has sufficient permission to the file
+      printf "[%lu] ENABLE_NOTIFICATIONS\n" "$(date +%s)" | tee "$CMD_FILE" >/dev/null
+   fi 
+   #
+   # Raise notification in the nagios GUI, so the sysadmin may notice from web browser, even if email notifications are disabled.
+   #
+   echo "$CHECK_NAME WARN Nagios notifications have been globally disabled for $AGE_MINUTES minutes, no one is getting any notifications. Please re-enable nagios notifications.  Notifications will be automatically re-enabled in $REMAINING_MINUTES minutes."
+   exit $WARN
+fi
+
+# we only get this far if everything is ok
+if [ "$GLOBAL_SETTING" == "enabled" ]; then 
+   test -f $TMPFILE && rm -f $TMPFILE
+   echo "$CHECK_NAME OK Nagios notifications are globally enabled, $ENABLED_COUNT currently enabled, $DISABLED_COUNT currently disabled"
+   exit $OK
+fi
+
