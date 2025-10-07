@@ -15,10 +15,11 @@ Copy the script to /usr/local/nagios/libexec/check_nagios_notifications (or the 
 Add a section similar to the following to services.cfg
 ```
 define service{
+        # optional parameter is number of minutes until alerts automatically re-enable, defaults to 1440
         use                             generic-service
         host_name                       MyNagiosServer.example.com
         service_description             notifications
-        check_command                   check_nagios_notifications
+        check_command                   check_nagios_notifications!1440
         }
 ```
 
@@ -27,7 +28,7 @@ Add a section similar to the following to commands.cfg
 # 'check_nagios_notfications' command definition
 define command{
         command_name    check_nagios_notifications
-        command_line    $USER1$/check_nagios_notifications
+        command_line    $USER1$/check_nagios_notifications $ARG1$
         }
 ```
 
