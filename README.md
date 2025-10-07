@@ -5,6 +5,7 @@ Nagios check to confirm notifications are enabled
 Sysadmins will sometimes turn nagios notifications off during a scheduled maintenance window, and forget to turn notifications back on.
 
 This check will automatically turn notifications on if they have been globally disabled for more than 24 hours.
+<img src=images/notifications.png>
 
 
 # Usage
