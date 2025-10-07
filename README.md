@@ -13,7 +13,7 @@ Add a section similar to the following to services.cfg
 ```
 define service{
         use                             generic-service
-        host_name                       localhost
+        host_name                       MyNagiosServer.example.com
         service_description             notifications
         check_command                   check_nagios_notifications
         }
@@ -21,7 +21,7 @@ define service{
 
 Add a section similar to the following to commands.cfg
 ```
-# 'check_nagios_notficiations' command definition
+# 'check_nagios_notfications' command definition
 define command{
         command_name    check_nagios_notifications
         command_line    $USER1$/check_nagios_notifications
