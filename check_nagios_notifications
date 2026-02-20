@@ -1,9 +1,10 @@
-#!/bin/sh
+#!/bin/bash
 
 # CHANGE LOG
 # ----------
 # 2025-10-06	njeffrey   Script created
 # 2026-02-20   njeffrey   Update status.dat location on Ubuntu 24
+# 2026-02-20   njeffrey   Change #!/bin/sh to #!/bin/bash because ubuntu symlinks sh to fish, breaks [[ ]] 
 
 
 # FUTURE ENHANCEMENTS
