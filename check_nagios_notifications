@@ -2,7 +2,8 @@
 
 # CHANGE LOG
 # ----------
-# 2025-10-06	njeffrey	Script created
+# 2025-10-06	njeffrey   Script created
+# 2026-02-20   njeffrey   Update status.dat location on Ubuntu 24
 
 
 # FUTURE ENHANCEMENTS
@@ -70,7 +71,9 @@ fi
 # confirm status.dat file exists and is readable
 STATUS_DAT=unknown
 test -f /usr/local/nagios/var/status.dat && STATUS_DAT=/usr/local/nagios/var/status.dat
-test -f /var/spool/nagios/status.dat     && STATUS_DAT=/var/spool/nagios/status.dat
+test -f /var/spool/nagios/status.dat     && STATUS_DAT=/var/spool/nagios/status.dat     #location on RHEL10
+test -f /var/lib/nagios4/status.dat      && STATUS_DAT=/var/lib/nagios4/status.dat      #location on Ubuntu 24
+
 if [ ! -f "$STATUS_DAT" ]; then 
    echo "$CHECK_NAME $UNKNOWN cannot find nagios status.dat file at $STATUS_DAT"
    exit $UNKNOWN
