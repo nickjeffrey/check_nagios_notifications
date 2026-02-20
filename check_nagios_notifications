@@ -17,7 +17,7 @@
 
 # USAGE
 # -----
-# It is assumed this scrpt is located in /usr/local/nagios/libexec/ or equivalent for your environment
+# It is assumed this script is located in /usr/local/nagios/libexec/ or equivalent for your environment
 #
 # Add a section similar to the following to services.cfg
 #
